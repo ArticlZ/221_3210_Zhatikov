@@ -1,0 +1,20 @@
+# Генерируемые Qt файлы
+moc_*.cpp
+ui_*.h
+*.pro.user
+*.qrc.depends
+.qmake.stash
+
+# Временные и кэш-файлы
+*.o
+*.obj
+*.ilk
+*.pdb
+*.exe
+*.apk
+*.log
+
+# Каталоги сборки
+build*/
+debug/
+release/
