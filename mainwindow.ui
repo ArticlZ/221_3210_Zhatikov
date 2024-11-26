@@ -6,31 +6,35 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>807</width>
-    <height>604</height>
+    <width>800</width>
+    <height>600</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="verticalLayout">
+   <layout class="QHBoxLayout" name="horizontalLayout">
     <item>
-     <widget class="QListWidget" name="listWidget">
-      <property name="horizontalScrollBarPolicy">
-       <enum>Qt::ScrollBarPolicy::ScrollBarAsNeeded</enum>
-      </property>
-      <property name="wordWrap">
-       <bool>true</bool>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QPushButton" name="openButton">
-      <property name="text">
-       <string>Open</string>
-      </property>
-     </widget>
+     <layout class="QGridLayout" name="gridLayout">
+      <item row="0" column="0">
+       <widget class="QPushButton" name="openButton">
+        <property name="text">
+         <string>Open</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QListWidget" name="listWidget"/>
+      </item>
+      <item row="1" column="0">
+       <widget class="QPushButton" name="addButton">
+        <property name="text">
+         <string>Add record</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </item>
    </layout>
   </widget>
@@ -39,8 +43,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>807</width>
-     <height>25</height>
+     <width>800</width>
+     <height>24</height>
     </rect>
    </property>
   </widget>

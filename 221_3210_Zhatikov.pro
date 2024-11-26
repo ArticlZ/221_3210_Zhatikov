@@ -7,14 +7,18 @@ CONFIG += c++17
 # Если используется Qt 6 и выше, отключаем устаревшие API (если нужно)
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000
 
+
 SOURCES += \
+    addrecorddialog.cpp \
     main.cpp \
     mainwindow.cpp
 
 HEADERS += \
+    addrecorddialog.h \
     mainwindow.h
 
 FORMS += \
+    addrecorddialog.ui \
     mainwindow.ui
 
 # Default rules for deployment.

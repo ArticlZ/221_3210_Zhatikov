@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "addrecorddialog.h"
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonArray>
@@ -12,11 +13,15 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
-    ui->setupUi(this);  // Настройка интерфейса из .ui файла
+    ui->setupUi(this);
+
+    // Кнопка "Add" недоступна, пока не открыт файл
+    ui->addButton->setEnabled(false);
 
     connect(ui->openButton, &QPushButton::clicked, this, &MainWindow::onOpenButtonClicked);
-
+    connect(ui->addButton, &QPushButton::clicked, this, &MainWindow::onAddRecordButtonClicked);
 }
+
 
 
 void MainWindow::onOpenButtonClicked()
@@ -31,6 +36,8 @@ void MainWindow::onOpenButtonClicked()
 
     // Если пользователь выбрал файл, загружаем данные
     if (!fileName.isEmpty()) {
+        currentJsonFilePath = fileName;
+        ui->addButton->setEnabled(true);
         loadData(fileName);
     }
 }
@@ -85,7 +92,7 @@ void MainWindow::loadData(const QString &fileName)
         QByteArray computedHashBytes = QCryptographicHash::hash(concatenatedData.toUtf8(), QCryptographicHash::Sha256);
         QString computedHash = computedHashBytes.toBase64();
 
-        QString entry = QString("Фамилия: %1\nИмя: %2\nПаспорт: %3\nХеш: %4")
+        QString entry = QString("Фамилия: %1\nИмя: %2\nПаспорт: %3\nХеш (из файла): %4")
                             .arg(surname)
                             .arg(name)
                             .arg(passport)
@@ -106,3 +113,74 @@ void MainWindow::loadData(const QString &fileName)
         }
     }
 }
+
+void MainWindow::onAddRecordButtonClicked()
+{
+    // Проверяем, открыт ли файл
+    if (currentJsonFilePath.isEmpty()) {
+        QMessageBox::warning(this, "Ошибка", "Сначала откройте JSON-файл.");
+        return;
+    }
+
+    AddRecordDialog dialog(this);
+
+    if (dialog.exec() == QDialog::Accepted) {
+        QString surname = dialog.getSurname();
+        QString name = dialog.getName();
+        QString passport = dialog.getPassport();
+
+        if (surname.isEmpty() || name.isEmpty() || passport.isEmpty()) {
+            QMessageBox::warning(this, "Ошибка", "Все поля должны быть заполнены.");
+            return;
+        }
+
+        // Текущая дата и время
+        QString currentDateTime = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss");
+
+        // Хеш для новой записи
+        QString concatenatedData = surname + name + passport;
+        QByteArray computedHashBytes = QCryptographicHash::hash(concatenatedData.toUtf8(), QCryptographicHash::Sha256);
+        QString computedHash = computedHashBytes.toBase64();
+
+        // Формируем новую запись
+        QJsonObject newRecord;
+        newRecord["surname"] = surname;
+        newRecord["name"] = name;
+        newRecord["passport"] = passport;
+        newRecord["date"] = currentDateTime;
+        newRecord["hash"] = computedHash;
+
+        // Открываем текущий JSON-файл
+        QFile file(currentJsonFilePath);
+        if (!file.open(QIODevice::ReadWrite | QIODevice::Text)) {
+            QMessageBox::critical(this, "Ошибка", "Не удалось открыть файл для записи.");
+            return;
+        }
+
+        QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+        QJsonArray array = doc.array();
+        array.append(newRecord);
+
+        // Обновляем JSON-документ и перезаписываем файл
+        doc.setArray(array);
+        file.resize(0); // Очистка файла перед записью
+        file.write(doc.toJson(QJsonDocument::Indented));
+        file.close();
+
+        // Добавляем новую запись в список
+        QString entry = QString("Фамилия: %1\nИмя: %2\nПаспорт: %3\nДата: %4\nХеш: %5")
+                            .arg(surname)
+                            .arg(name)
+                            .arg(passport)
+                            .arg(currentDateTime)
+                            .arg(computedHash);
+
+        QListWidgetItem *item = new QListWidgetItem(entry);
+        ui->listWidget->addItem(item);
+
+        QMessageBox::information(this, "Успех", "Запись успешно добавлена.");
+    }
+}
+
+
+
