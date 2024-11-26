@@ -15,9 +15,11 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+private slots:
+    void onOpenButtonClicked();
+
 private:
     Ui::MainWindow *ui;
-
     void loadData(const QString &fileName);  // Метод для загрузки данных из файла
 };
 

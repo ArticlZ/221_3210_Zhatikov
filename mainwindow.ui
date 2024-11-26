@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>807</width>
-    <height>565</height>
+    <height>604</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -22,6 +22,13 @@
       </property>
       <property name="wordWrap">
        <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="openButton">
+      <property name="text">
+       <string>Open</string>
       </property>
      </widget>
     </item>

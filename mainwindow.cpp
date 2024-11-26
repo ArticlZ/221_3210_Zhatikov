@@ -6,6 +6,7 @@
 #include <QJsonObject>
 #include <QCryptographicHash>
 #include <QMessageBox>
+#include <QFileDialog> // Для диалога выбора файла
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -13,9 +14,29 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);  // Настройка интерфейса из .ui файла
 
-    // Загружаем данные из JSON файла
-    loadData("C:/221_3210_Zhatikov/221_3210_Zhatikov/dataRED.json");
+    connect(ui->openButton, &QPushButton::clicked, this, &MainWindow::onOpenButtonClicked);
+
 }
+
+
+void MainWindow::onOpenButtonClicked()
+{
+    // Открываем диалог выбора файла
+    QString fileName = QFileDialog::getOpenFileName(
+        this,
+        tr("Выберите файл JSON"),
+        "",
+        tr("JSON Files (*.json);;All Files (*)")
+        );
+
+    // Если пользователь выбрал файл, загружаем данные
+    if (!fileName.isEmpty()) {
+        loadData(fileName);
+    }
+}
+
+
+
 
 MainWindow::~MainWindow()
 {
@@ -39,8 +60,12 @@ void MainWindow::loadData(const QString &fileName)
         return;
     }
 
+    // Очищаем предыдущие записи из списка
+    ui->listWidget->clear();
+
     QJsonArray array = doc.array();
     QString previousHash; // Хеш предыдущей записи (для первой записи пусто)
+    bool chainBroken = false; // Флаг нарушения цепочки
 
     for (int i = 0; i < array.size(); ++i) {
         QJsonObject obj = array[i].toObject();
@@ -50,47 +75,34 @@ void MainWindow::loadData(const QString &fileName)
         QString passport = obj["passport"].toString().trimmed();
         QString hashFromFile = obj["hash"].toString().trimmed();
 
-        // Формируем строку для вычисления хеша
         QString concatenatedData;
         if (i == 0) {
-            // Для первой записи учитываем только её поля
-            concatenatedData = surname + name + passport;
+            concatenatedData = surname + name + passport; // Первая запись
         } else {
-            // Для остальных записей добавляем previousHash
-            concatenatedData = surname + name + passport + previousHash;
+            concatenatedData = surname + name + passport + previousHash; // Остальные записи
         }
 
-        // Вычисляем хеш
-        QByteArray computedHash = QCryptographicHash::hash(concatenatedData.toUtf8(), QCryptographicHash::Sha256).toBase64();
+        QByteArray computedHashBytes = QCryptographicHash::hash(concatenatedData.toUtf8(), QCryptographicHash::Sha256);
+        QString computedHash = computedHashBytes.toBase64();
 
-        // Формируем строку для отображения записи
         QString entry = QString("Фамилия: %1\nИмя: %2\nПаспорт: %3\nХеш: %4")
                             .arg(surname)
                             .arg(name)
                             .arg(passport)
                             .arg(hashFromFile);
 
-        // Создаём элемент списка
         QListWidgetItem *item = new QListWidgetItem(entry);
 
-        // Проверяем, совпадает ли вычисленный хеш с хешем из файла
-        if (computedHash != hashFromFile) {
-            // Если ошибка, выделяем элемент красным
+        if (computedHash != hashFromFile || chainBroken) {
             item->setBackground(Qt::red);
             item->setForeground(Qt::white);
+            chainBroken = true; // Все последующие записи также отмечаются как некорректные
         }
 
-        // Добавляем элемент в QListWidget
         ui->listWidget->addItem(item);
 
-        // Обновляем previousHash только если хеш корректный
-        if (computedHash == hashFromFile) {
+        if (!chainBroken) {
             previousHash = hashFromFile;
-        } else {
-            // Если хеш не совпадает, останавливаем обновление цепочки
-            previousHash = ""; // Или можно сохранить старое значение, если это требуется
         }
     }
 }
-
-
