@@ -2,7 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QListWidget> // Подключаем класс QListWidget
+#include <QListWidget>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -18,9 +18,9 @@ public:
 
 private:
     Ui::MainWindow *ui;
-    QListWidget *listWidget; // Объявляем переменную listWidget
-    QString currentJsonFilePath; // Путь к открытому JSON-файлу
-    void loadData(const QString &fileName); // Объявляем метод loadData
+    QListWidget *listWidget;
+    QString currentJsonFilePath;
+    void loadData(const QString &fileName);
 
 private slots:
     void onOpenButtonClicked();

@@ -7,7 +7,7 @@
 #include <QJsonObject>
 #include <QCryptographicHash>
 #include <QMessageBox>
-#include <QFileDialog> // Для диалога выбора файла
+#include <QFileDialog>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -15,7 +15,7 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    // Кнопка "Add" недоступна, пока не открыт файл
+
     ui->addButton->setEnabled(false);
 
     connect(ui->openButton, &QPushButton::clicked, this, &MainWindow::onOpenButtonClicked);
@@ -26,7 +26,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 void MainWindow::onOpenButtonClicked()
 {
-    // Открываем диалог выбора файла
+
     QString fileName = QFileDialog::getOpenFileName(
         this,
         tr("Выберите файл JSON"),
@@ -34,7 +34,7 @@ void MainWindow::onOpenButtonClicked()
         tr("JSON Files (*.json);;All Files (*)")
         );
 
-    // Если пользователь выбрал файл, загружаем данные
+
     if (!fileName.isEmpty()) {
         currentJsonFilePath = fileName;
         ui->addButton->setEnabled(true);
@@ -67,12 +67,12 @@ void MainWindow::loadData(const QString &fileName)
         return;
     }
 
-    // Очищаем предыдущие записи из списка
+
     ui->listWidget->clear();
 
     QJsonArray array = doc.array();
-    QString previousHash; // Хеш предыдущей записи (для первой записи пусто)
-    bool chainBroken = false; // Флаг нарушения цепочки
+    QString previousHash;
+    bool chainBroken = false;
 
     for (int i = 0; i < array.size(); ++i) {
         QJsonObject obj = array[i].toObject();
@@ -80,22 +80,32 @@ void MainWindow::loadData(const QString &fileName)
         QString surname = obj["surname"].toString().trimmed();
         QString name = obj["name"].toString().trimmed();
         QString passport = obj["passport"].toString().trimmed();
+        QString date = obj.contains("date") ? obj["date"].toString().trimmed() : "";
         QString hashFromFile = obj["hash"].toString().trimmed();
 
         QString concatenatedData;
         if (i == 0) {
-            concatenatedData = surname + name + passport; // Первая запись
+            if (date.isEmpty()) {
+                concatenatedData = surname + name + passport;
+            } else {
+                concatenatedData = surname + name + passport + date;
+            }
         } else {
-            concatenatedData = surname + name + passport + previousHash; // Остальные записи
+            if (date.isEmpty()) {
+                concatenatedData = surname + name + passport + previousHash;
+            } else {
+                concatenatedData = surname + name + passport + date + previousHash;
+            }
         }
 
         QByteArray computedHashBytes = QCryptographicHash::hash(concatenatedData.toUtf8(), QCryptographicHash::Sha256);
         QString computedHash = computedHashBytes.toBase64();
 
-        QString entry = QString("Фамилия: %1\nИмя: %2\nПаспорт: %3\nХеш (из файла): %4")
+        QString entry = QString("Фамилия: %1\nИмя: %2\nПаспорт: %3\nДата: %4\nХеш: %5")
                             .arg(surname)
                             .arg(name)
                             .arg(passport)
+                            .arg(date.isEmpty() ? "Нет данных" : date)
                             .arg(hashFromFile);
 
         QListWidgetItem *item = new QListWidgetItem(entry);
@@ -103,7 +113,7 @@ void MainWindow::loadData(const QString &fileName)
         if (computedHash != hashFromFile || chainBroken) {
             item->setBackground(Qt::red);
             item->setForeground(Qt::white);
-            chainBroken = true; // Все последующие записи также отмечаются как некорректные
+            chainBroken = true;
         }
 
         ui->listWidget->addItem(item);
@@ -114,14 +124,10 @@ void MainWindow::loadData(const QString &fileName)
     }
 }
 
+
+
 void MainWindow::onAddRecordButtonClicked()
 {
-    // Проверяем, открыт ли файл
-    if (currentJsonFilePath.isEmpty()) {
-        QMessageBox::warning(this, "Ошибка", "Сначала откройте JSON-файл.");
-        return;
-    }
-
     AddRecordDialog dialog(this);
 
     if (dialog.exec() == QDialog::Accepted) {
@@ -134,15 +140,33 @@ void MainWindow::onAddRecordButtonClicked()
             return;
         }
 
-        // Текущая дата и время
+
         QString currentDateTime = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss");
 
-        // Хеш для новой записи
-        QString concatenatedData = surname + name + passport;
+
+        QString previousHash;
+        if (ui->listWidget->count() > 0) {
+            QListWidgetItem *lastItem = ui->listWidget->item(ui->listWidget->count() - 1);
+            QString lastItemText = lastItem->text();
+
+
+            QRegularExpression regex("Хеш: (.+)");
+            QRegularExpressionMatch match = regex.match(lastItemText);
+            qDebug() << match;
+
+            if (match.hasMatch()) {
+                previousHash = match.captured(1);
+            }
+        }
+
+
+        QString concatenatedData = surname + name + passport + currentDateTime + previousHash;
+
+
         QByteArray computedHashBytes = QCryptographicHash::hash(concatenatedData.toUtf8(), QCryptographicHash::Sha256);
         QString computedHash = computedHashBytes.toBase64();
 
-        // Формируем новую запись
+
         QJsonObject newRecord;
         newRecord["surname"] = surname;
         newRecord["name"] = name;
@@ -150,7 +174,7 @@ void MainWindow::onAddRecordButtonClicked()
         newRecord["date"] = currentDateTime;
         newRecord["hash"] = computedHash;
 
-        // Открываем текущий JSON-файл
+
         QFile file(currentJsonFilePath);
         if (!file.open(QIODevice::ReadWrite | QIODevice::Text)) {
             QMessageBox::critical(this, "Ошибка", "Не удалось открыть файл для записи.");
@@ -161,13 +185,13 @@ void MainWindow::onAddRecordButtonClicked()
         QJsonArray array = doc.array();
         array.append(newRecord);
 
-        // Обновляем JSON-документ и перезаписываем файл
+
         doc.setArray(array);
-        file.resize(0); // Очистка файла перед записью
+        file.resize(0);
         file.write(doc.toJson(QJsonDocument::Indented));
         file.close();
 
-        // Добавляем новую запись в список
+
         QString entry = QString("Фамилия: %1\nИмя: %2\nПаспорт: %3\nДата: %4\nХеш: %5")
                             .arg(surname)
                             .arg(name)
@@ -181,6 +205,5 @@ void MainWindow::onAddRecordButtonClicked()
         QMessageBox::information(this, "Успех", "Запись успешно добавлена.");
     }
 }
-
 
 
