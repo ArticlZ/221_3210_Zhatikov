@@ -11,15 +11,18 @@ CONFIG += c++17
 SOURCES += \
     addrecorddialog.cpp \
     main.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    pindialog.cpp
 
 HEADERS += \
     addrecorddialog.h \
-    mainwindow.h
+    mainwindow.h \
+    pindialog.h
 
 FORMS += \
     addrecorddialog.ui \
-    mainwindow.ui
+    mainwindow.ui \
+    pindialog.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
